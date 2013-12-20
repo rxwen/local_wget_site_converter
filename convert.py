@@ -55,11 +55,7 @@ def link_conversion(page_url, soup):
             new_url = get_relative_path_to(page_url, url)
             link["href"] = get_name_for(new_url)
         elif url.startswith(absolute_url_prefix):
-            print '======================================================='
-            print url
             url = url[len(absolute_url_prefix):]
-            print url
-            print '======================================================='
             new_url = get_relative_path_to(page_url, url)
             link["href"] = get_name_for(new_url)
         else:
@@ -77,12 +73,10 @@ def img_conversion(page_url, soup):
             img["src"] = get_name_for(new_url)
         else:
             img["src"] = get_name_for(url)
-        #img["src"] = img["src"].replace('?', '@')
-        #print ' aaaaaaaaaaaaa                       '
 
 def get_name_for(p, use_checksum_as_name = True):
     basename = path.basename(p)
-    basename = basename.replace('@', '?') # this is a hack for windows, for the wget tool save ? in url as @ as file name
+    basename = basename.replace('@', '?') # this is a hack for windows, for the wget tool save ? in url as @ file name
     ext = path
     if use_checksum_as_name:
         basename = get_checksum(basename)+'.'+get_ext_for(p)
@@ -102,7 +96,16 @@ def get_checksum(data):
 
 if __name__ == "__main__":
     out_dir = "../new/"
-    for root, dirs, files in os.walk(sys.argv[1]):
+    in_dir = './'
+    if len(sys.argv) > 1:
+        in_dir = sys.argv[1]
+    if not path.exists(out_dir):
+        shutil.os.mkdir(out_dir)
+    if not path.isdir(out_dir):
+        print out_dir + ' is not a directory'
+        sys.exit(1)
+
+    for root, dirs, files in os.walk(in_dir):
         for d in dirs:
             new_dir = path.join(out_dir, root, d)
             if not path.exists(new_dir):
@@ -122,7 +125,7 @@ if __name__ == "__main__":
                 elif 'gif' == get_ext_for(f) \
                         or 'png' == get_ext_for(f) \
                         or 'jpg' == get_ext_for(f):
-                    shutil.copy(f, out_dir+f)
+                    shutil.copy(f, out_dir+f) # copy the image with intact name and hashed name 
                     shutil.copy(f, out_dir+get_name_for(f))
                 else:
                     shutil.copy(f, out_dir+get_name_for(f))
