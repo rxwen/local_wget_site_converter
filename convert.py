@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+__version__ = "1.0.0"
+
 from BeautifulSoup import BeautifulSoup
 from os import path
 from md5 import md5
@@ -12,6 +14,30 @@ import urllib
 
 # this dictionary contains name conversion mapping
 name_mapping = {}
+
+shortest_filename = ""
+def create_index_html(root_dir, redir_page):
+    print "create index.html, redirect to " + redir_page
+    redir_page = get_relative_path_to("index.html", redir_page)
+    redir_page = get_name_for(redir_page).replace(path.sep, '/')
+    filename = path.join(root_dir, "index.html")
+    f = open(filename, "w")
+    index_content = '''<html>
+<head>
+<script>
+function onload()
+{
+  window.location.assign("%s");
+}
+</script>
+</head>
+<body onload="onload()">
+</body>
+</html>'''
+    index_content = index_content%(redir_page)
+    f.write(index_content)
+    f.close()
+
 
 def load_html_file(filename):
     f = open(filename)
@@ -34,13 +60,6 @@ def get_relative_path_to(src, dst):
     if common_prefix.count(path.sep) > 0:
         common_prefix = common_prefix[:common_prefix.rindex(path.sep)+1]
     relative_to_src = path.relpath(src, common_prefix)
-    #print '+++++++++++++++++++++++++++++++++++++++++'
-    #print src
-    #print dst
-    #print common_prefix
-    #print relative_to_src
-    #print  "../"*relative_to_src.count(path.sep)+path.relpath(dst, common_prefix)
-    #print '------------------------------------------'
     return "../"*relative_to_src.count(path.sep)+path.relpath(dst, common_prefix)
 
 def link_conversion(page_url, soup):
@@ -95,6 +114,7 @@ def get_checksum(data):
     return m.hexdigest()
 
 if __name__ == "__main__":
+    print "convert.py version: " + __version__
     out_dir = "../new/"
     in_dir = './'
     if len(sys.argv) > 1:
@@ -118,6 +138,8 @@ if __name__ == "__main__":
                 link_conversion(f, soup)
                 img_conversion(f, soup)
                 write_html_file(out_dir+get_name_for(f), soup)
+                if (len(shortest_filename) < 1 or len(shortest_filename) > f) and f.lower().count("view.aspx") > 0:
+                    shortest_filename = f
             else:
                 if 'css' == get_ext_for(f) \
                         or 'swf' == get_ext_for(f):
@@ -129,5 +151,6 @@ if __name__ == "__main__":
                     shutil.copy(f, out_dir+get_name_for(f))
                 else:
                     shutil.copy(f, out_dir+get_name_for(f))
-        
 
+    if len(shortest_filename) > 1:
+        create_index_html(out_dir, shortest_filename)
