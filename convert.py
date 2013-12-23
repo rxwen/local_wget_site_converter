@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 
 from BeautifulSoup import BeautifulSoup
 from os import path
@@ -51,16 +51,21 @@ def write_html_file(filename, soup):
     f.close()
 
 
-def get_relative_path_to(src, dst):
+def get_relative_path_to(src, dst, change_sep_to_unix_type=False):
 # the two lines below are used to make sure leading ./ are removed
     src = path.relpath(src)
     dst = path.relpath(dst)
+    if change_sep_to_unix_type:
+        src = src.replace(path.sep, '/').lower()
+        dst = dst.replace(path.sep, '/').lower()
 
     common_prefix = path.commonprefix([src, dst])
     if common_prefix.count(path.sep) > 0:
         common_prefix = common_prefix[:common_prefix.rindex(path.sep)+1]
     relative_to_src = path.relpath(src, common_prefix)
-    return "../"*relative_to_src.count(path.sep)+path.relpath(dst, common_prefix)
+    result = "../"*relative_to_src.count(path.sep)+path.relpath(dst, common_prefix)
+    result = result.replace(path.sep, '/')
+    return result
 
 def link_conversion(page_url, soup):
     links = soup.findAll(name='a')
@@ -92,6 +97,40 @@ def img_conversion(page_url, soup):
             img["src"] = get_name_for(new_url)
         else:
             img["src"] = get_name_for(url)
+
+def video_conversion(page_url, soup):
+    embeds = soup.findAll(name='embed')
+    for ebd in embeds:
+        if not ebd.has_key("src"):
+            continue
+        url = ebd["src"]
+
+        url = url.replace(path.sep, '/')
+
+        absolute_url_prefix = 'http://cc.usst.edu.cn:80/'
+        if url.startswith(absolute_url_prefix):
+            url = url[len(absolute_url_prefix):]
+        if url.startswith('/'):
+            url = url[1:]
+        new_url = get_relative_path_to(page_url, url, True)
+        ebd["src"] = new_url
+        if new_url.count("flv") > 0:
+            if not ebd.has_key("flashvars"):
+                continue
+            video_url = ebd['flashvars']
+            begin_tag = 'file='
+            end_tag = '&'
+            begin_index = video_url.index(begin_tag)
+            end_index = video_url.index(end_tag)
+            string_after = video_url[end_index:]
+            video_url = video_url[begin_index+len(begin_tag):end_index]
+            ebd['flashvars'] = begin_tag+convert_video_url(new_url, video_url)+string_after
+
+def convert_video_url(flash_plugin_url, video_url):
+    absolute_url_prefix = 'http://cc.usst.edu.cn:80/'
+    video_url = video_url[len(absolute_url_prefix):]
+    new_url = get_relative_path_to(flash_plugin_url, video_url)
+    return new_url
 
 def get_name_for(p, use_checksum_as_name = True):
     basename = path.basename(p)
@@ -137,6 +176,7 @@ if __name__ == "__main__":
                 soup = load_html_file(f)
                 link_conversion(f, soup)
                 img_conversion(f, soup)
+                video_conversion(f, soup)
                 write_html_file(out_dir+get_name_for(f), soup)
                 if (len(shortest_filename) < 1 or len(shortest_filename) > f) and f.lower().count("view.aspx") > 0:
                     shortest_filename = f
