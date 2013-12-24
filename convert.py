@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.0"
+__version__ = "1.1.1"
 
 from BeautifulSoup import BeautifulSoup
 from os import path
@@ -181,10 +181,10 @@ if __name__ == "__main__":
                 if (len(shortest_filename) < 1 or len(shortest_filename) > f) and f.lower().count("view.aspx") > 0:
                     shortest_filename = f
             else:
-                if 'css' == get_ext_for(f) \
-                        or 'swf' == get_ext_for(f):
+                if 'css' == get_ext_for(f):
                     shutil.copy(f, out_dir+f)
                 elif 'gif' == get_ext_for(f) \
+                        or 'swf' == get_ext_for(f) \
                         or 'png' == get_ext_for(f) \
                         or 'jpg' == get_ext_for(f):
                     shutil.copy(f, out_dir+f) # copy the image with intact name and hashed name 
