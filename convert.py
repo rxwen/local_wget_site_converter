@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.1"
+__version__ = "1.2.1"
 
-from BeautifulSoup import BeautifulSoup
+#from BeautifulSoup import BeautifulSoup
+from bs4 import BeautifulSoup
 from os import path
 from md5 import md5
 import sys
