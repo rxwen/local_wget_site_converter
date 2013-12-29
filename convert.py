@@ -10,6 +10,7 @@ import sys
 import os
 import shutil
 import urllib
+import codecs
 
 
 # this dictionary contains name conversion mapping
@@ -21,7 +22,8 @@ def create_index_html(root_dir, redir_page):
     redir_page = get_relative_path_to("index.html", redir_page)
     redir_page = get_name_for(redir_page).replace(path.sep, '/')
     filename = path.join(root_dir, "index.html")
-    f = open(filename, "w")
+    #f = open(filename, "w")
+    f = codecs.open(filename, 'w', 'utf-8')
     index_content = '''<html>
 <head>
 <script>
@@ -40,14 +42,16 @@ function onload()
 
 
 def load_html_file(filename):
-    f = open(filename)
+    #f = open(filename)
+    f = codecs.open(filename, 'r', 'utf-8')
     lines = f.read()
     soup = BeautifulSoup(lines)
     return soup
 
 def write_html_file(filename, soup):
-    f = open(filename, "w")
-    f.write(str(soup))
+    #f = open(filename, "w")
+    f = codecs.open(filename, 'w', 'utf-8')
+    f.write(unicode(soup))
     f.close()
 
 
@@ -149,7 +153,8 @@ def get_ext_for(p):
 
 def get_checksum(data):
     m = md5()
-    m.update(urllib.url2pathname(data))
+    d = urllib.url2pathname(data)
+    m.update(d.encode('utf-8'))
     return m.hexdigest()
 
 if __name__ == "__main__":
@@ -164,7 +169,7 @@ if __name__ == "__main__":
         print out_dir + ' is not a directory'
         sys.exit(1)
 
-    for root, dirs, files in os.walk(in_dir):
+    for root, dirs, files in os.walk(unicode(in_dir)):
         for d in dirs:
             new_dir = path.join(out_dir, root, d)
             if not path.exists(new_dir):
