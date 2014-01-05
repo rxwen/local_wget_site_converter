@@ -18,6 +18,8 @@ import codecs
 name_mapping = {}
 
 shortest_filename = ""
+absolute_url_prefix = 'http://cc.usst.edu.cn/'
+
 def create_index_html(root_dir, redir_page):
     print "create index.html, redirect to " + redir_page
     redir_page = get_relative_path_to("index.html", redir_page)
@@ -58,8 +60,12 @@ def write_html_file(filename, soup):
 
 def get_relative_path_to(src, dst, change_sep_to_unix_type=False):
 # the two lines below are used to make sure leading ./ are removed
+    #print '==============================='
+    #print src
+    #print dst
     src = path.relpath(src)
     dst = path.relpath(dst)
+    #print '-------------------------------'
     if change_sep_to_unix_type:
         src = src.replace(path.sep, '/').lower()
         dst = dst.replace(path.sep, '/').lower()
@@ -74,19 +80,24 @@ def get_relative_path_to(src, dst, change_sep_to_unix_type=False):
 
 def link_conversion(page_url, soup):
     links = soup.findAll(name='a')
-    absolute_url_prefix = 'http://cc.usst.edu.cn/'
     for link in links:
         if not link.has_key("href"):
             continue
         url = link["href"]
         if url.startswith('/'):
             url = url[1:]
-            new_url = get_relative_path_to(page_url, url)
-            link["href"] = get_name_for(new_url)
+            if len(url) > 0:
+                new_url = get_relative_path_to(page_url, url)
+                if new_url.count(u'|') > 0:
+                    new_url = new_url[:new_url.index(u'|')]
+                link["href"] = get_name_for(new_url)
         elif url.startswith(absolute_url_prefix):
             url = url[len(absolute_url_prefix):]
             new_url = get_relative_path_to(page_url, url)
             link["href"] = get_name_for(new_url)
+        elif url.startswith("http://") or url.startswith("https://"):
+# no need to change external site
+            pass
         else:
             link["href"] = get_name_for(url)
 
@@ -102,6 +113,18 @@ def img_conversion(page_url, soup):
             img["src"] = get_name_for(new_url)
         else:
             img["src"] = get_name_for(url)
+        
+        if img.has_key("onclick"):
+            # if the img makes use of javascript to perform url redirection, handle it here
+            script = img["onclick"]
+            if script.startswith("self.location.href") and script.count(absolute_url_prefix) > 0:
+                url = script[script.index(absolute_url_prefix)+len(absolute_url_prefix):]
+                if url.endswith("'"):
+                    url = url[:-1]
+                new_url = get_relative_path_to(page_url, url)
+                onclick = "self.location.href='%s'"%(get_name_for(new_url).replace(path.sep, '/')) 
+                img["onclick"] = onclick
+                
 
 def video_conversion(page_url, soup):
     embeds = soup.findAll(name='embed')
@@ -154,6 +177,8 @@ def get_ext_for(p):
 
 def get_checksum(data):
     m = md5()
+    if data.count(u':') > 0:
+        data = data[:data.index(u':')]
     d = urllib.url2pathname(data)
     m.update(d.encode('utf-8'))
     return m.hexdigest()
@@ -188,6 +213,8 @@ if __name__ == "__main__":
                     shortest_filename = f
             else:
                 if 'css' == get_ext_for(f):
+                    shutil.copy(f, out_dir+f)
+                if 'js' == get_ext_for(f):
                     shutil.copy(f, out_dir+f)
                 elif 'gif' == get_ext_for(f) \
                         or 'swf' == get_ext_for(f) \
