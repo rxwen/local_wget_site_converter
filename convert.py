@@ -13,7 +13,6 @@ import shutil
 import urllib
 import codecs
 
-
 # this dictionary contains name conversion mapping
 name_mapping = {}
 
